@@ -1,16 +1,34 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 
 export class AwsCdkCiCdStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    /// Lambda Function
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'AwsCdkCiCdQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const lambdaFunction = new lambda.Function(this, 'HelloHandler-' + id, {
+      functionName: 'HelloHandler-' + id,
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'hello.handler',
+      environment: {
+        BUCKET: 'myBucket',
+      },
+    });
+
+    /// Api Gateway
+
+    const api = new apigateway.RestApi(this, 'awsCdkCICDApiGateway-' + id, {
+      restApiName: 'aws-cdk-ci-cd-gateway-' + id,
+    });
+
+    const lambdaIntegration = new apigateway.LambdaIntegration(lambdaFunction, {
+      requestTemplates: { 'application/json': '{ "statusCode": "200" }' },
+    });
+
+    api.root.addMethod('GET', lambdaIntegration);
   }
 }
